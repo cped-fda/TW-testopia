@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testopia! — FDA Ghana Regulatory Quiz</title>
+</head>
+<body style="margin:0;padding:20px;background:#f2f2f0;font-family:Arial,sans-serif;">
+
+<!-- ================================================
+     TESTOPIA! INTERACTIVE POLL — FDA GHANA
+     Drop this entire file anywhere, or copy everything
+     between the two COPY FROM HERE / COPY TO HERE
+     comments into any HTML newsletter.
+================================================ -->
+
+<!-- ===== COPY FROM HERE ===== -->
+<div style="max-width:620px;margin:0 auto;background:#f8f8f6;padding:24px;border-radius:6px;">
+
+  <!-- Header row -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+    <div style="font-size:22px;font-weight:800;text-transform:uppercase;color:#1B2B6B;letter-spacing:0.5px;border-bottom:4px solid #F5C400;padding-bottom:5px;">
+      Testopia! &#8212; Regulatory Quiz
+    </div>
+    <div id="twpill" style="font-size:13px;font-weight:700;padding:4px 16px;border-radius:99px;border:1.5px solid #ccc;color:#555;background:#fff;">0 / 6</div>
+  </div>
+
+  <!-- Subtitle -->
+  <div style="font-size:13px;color:#777;margin-bottom:14px;">Select the correct answer for each question. Explanation revealed after each choice.</div>
+
+  <!-- Progress bar -->
+  <div style="height:4px;background:#ddd;border-radius:4px;margin-bottom:22px;">
+    <div id="twbar" style="height:4px;border-radius:4px;background:#1B2B6B;width:0%;transition:width 0.4s ease;"></div>
+  </div>
+
+  <!-- Questions injected here by JS -->
+  <div id="twquestions"></div>
+
+  <!-- Summary (hidden until complete) -->
+  <div id="twsummary" style="display:none;background:#fff;border:1.5px solid #e0e0dc;border-radius:6px;padding:28px;text-align:center;margin-top:10px;">
+    <div id="twfinal" style="font-size:64px;font-weight:800;color:#1B2B6B;line-height:1;margin-bottom:4px;"></div>
+    <div style="font-size:14px;color:#888;margin-bottom:10px;">out of 6 correct</div>
+    <div id="twverdict" style="font-size:15px;color:#1a1a2e;margin-bottom:22px;line-height:1.65;max-width:380px;margin-left:auto;margin-right:auto;"></div>
+    <button onclick="twReset()" style="background:#1B2B6B;color:#F5C400;border:none;border-radius:5px;padding:11px 28px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.3px;">&#8635; Try Again</button>
+  </div>
+
+</div>
+
+<script>
+(function () {
+
+  /* ---- Question bank ---- */
+  var QS = [
+    {
+      q: 'Which of the following best reflects the concept of "post-market surveillance"?',
+      opts: [
+        'Testing products before approval',
+        'Advertising approved products',
+        'Issuing manufacturing licenses',
+        'Monitoring safety and quality of products after they are on the market'
+      ],
+      ans: 3,
+      why: 'Post-market surveillance monitors the ongoing safety and quality of products already on the market — after pre-market approval has been granted.'
+    },
+    {
+      q: 'A manufacturer fails to report adverse events associated with its product. This is a violation because:',
+      opts: [
+        'It undermines pharmacovigilance and public safety',
+        'It affects product branding',
+        'It delays product registration',
+        'It increases operational costs'
+      ],
+      ans: 0,
+      why: 'Reporting adverse events is a cornerstone of pharmacovigilance. Failure to report undermines the system that protects public safety.'
+    },
+    {
+      q: 'A manufacturer submits a product with labelling in a foreign language without an English translation. FDA Ghana should:',
+      opts: [
+        'Approve if the ingredients are safe',
+        'Allow sale only in urban areas',
+        'Reject or request relabelling to meet local requirements',
+        'Approve with a warning'
+      ],
+      ans: 2,
+      why: 'Labelling must meet local requirements — including language — so consumers can read and understand product information. Rejection or relabelling is required.'
+    },
+    {
+      q: 'During inspection, a facility is found to have poor sanitation but no immediate contamination is detected. This deficiency is best classified as:',
+      opts: [
+        'Minor',
+        'Major',
+        'Critical',
+        'Not a deficiency'
+      ],
+      ans: 2,
+      why: 'Poor sanitation is a critical deficiency because it creates direct conditions for contamination, even if none has occurred yet. It poses an immediate public health risk.'
+    },
+    {
+      q: 'A company imports a drug with a valid foreign certificate but without FDA Ghana registration. The regulatory position is:',
+      opts: [
+        'It can be sold temporarily',
+        'It is automatically approved',
+        'It can only be sold in hospitals',
+        'It must still undergo FDA Ghana registration before marketing'
+      ],
+      ans: 3,
+      why: 'A foreign certificate does not substitute for FDA Ghana registration. All products must be independently registered before they can be marketed in Ghana.'
+    },
+    {
+      q: 'A food manufacturer fails to implement a HACCP system. This primarily affects:',
+      opts: [
+        'Preventive food safety management',
+        'Product marketing',
+        'Packaging design',
+        'Distribution efficiency'
+      ],
+      ans: 0,
+      why: 'HACCP is a systematic preventive approach to food safety. Failing to implement it directly compromises the ability to identify and control food safety hazards.'
+    }
+  ];
+
+  var LETTERS = ['A', 'B', 'C', 'D'];
+  var answered, score;
+
+  /* ---- Build quiz ---- */
+  function build() {
+    answered = new Array(QS.length).fill(false);
+    score = 0;
+    syncMeta();
+
+    var wrap = document.getElementById('twquestions');
+    wrap.innerHTML = '';
+    document.getElementById('twsummary').style.display = 'none';
+
+    QS.forEach(function (q, qi) {
+
+      /* Card */
+      var card = document.createElement('div');
+      card.style.cssText = [
+        'background:#fff',
+        'border:1.5px solid #e0e0dc',
+        'border-left:5px solid #1B2B6B',
+        'border-radius:0 6px 6px 0',
+        'padding:18px 18px 16px',
+        'margin-bottom:14px'
+      ].join(';');
+
+      /* Question number */
+      var num = document.createElement('div');
+      num.style.cssText = 'font-size:11px;font-weight:700;color:#aaa;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:7px;';
+      num.textContent = 'Question ' + (qi + 1) + ' of ' + QS.length;
+
+      /* Question text */
+      var qtext = document.createElement('div');
+      qtext.style.cssText = 'font-size:14.5px;font-weight:700;color:#1a1a2e;line-height:1.55;margin-bottom:14px;';
+      qtext.textContent = q.q;
+
+      /* Options — 2-column grid via display:grid */
+      var grid = document.createElement('div');
+      grid.id = 'twgrid' + qi;
+      grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+
+      q.opts.forEach(function (opt, oi) {
+        var btn = document.createElement('button');
+        btn.id = 'twbtn' + qi + '_' + oi;
+        btn.style.cssText = [
+          'background:#f4f4f2',
+          'border:1.5px solid #ddd',
+          'border-radius:5px',
+          'padding:10px 12px',
+          'font-size:13px',
+          'color:#1a1a2e',
+          'cursor:pointer',
+          'text-align:left',
+          'line-height:1.45',
+          'width:100%',
+          'font-family:Arial,sans-serif',
+          'display:flex',
+          'gap:8px',
+          'align-items:flex-start'
+        ].join(';');
+        btn.innerHTML = '<b style="flex-shrink:0;">' + LETTERS[oi] + '.</b> ' + opt;
+
+        /* hover */
+        btn.onmouseover = function () {
+          if (!btn.disabled) {
+            btn.style.background = '#e5ebf7';
+            btn.style.borderColor = '#1B2B6B';
+            btn.style.color = '#1B2B6B';
+          }
+        };
+        btn.onmouseout = function () {
+          if (!btn.disabled && !btn.dataset.picked) {
+            btn.style.background = '#f4f4f2';
+            btn.style.borderColor = '#ddd';
+            btn.style.color = '#1a1a2e';
+          }
+        };
+
+        /* click — IIFE to capture qi and oi */
+        btn.onclick = (function (qi2, oi2) {
+          return function () { pick(qi2, oi2); };
+        }(qi, oi));
+
+        grid.appendChild(btn);
+      });
+
+      /* Feedback box */
+      var fb = document.createElement('div');
+      fb.id = 'twfb' + qi;
+      fb.style.cssText = 'display:none;margin-top:12px;font-size:13px;line-height:1.65;padding:11px 13px;border-radius:5px;font-family:Arial,sans-serif;';
+
+      card.appendChild(num);
+      card.appendChild(qtext);
+      card.appendChild(grid);
+      card.appendChild(fb);
+      wrap.appendChild(card);
+    });
+  }
+
+  /* ---- Handle answer selection ---- */
+  function pick(qi, oi) {
+    if (answered[qi]) return;
+    answered[qi] = true;
+
+    var q = QS[qi];
+    var correct = (oi === q.ans);
+    var grid = document.getElementById('twgrid' + qi);
+    var fb = document.getElementById('twfb' + qi);
+
+    /* Style all buttons */
+    for (var i = 0; i < q.opts.length; i++) {
+      var btn = document.getElementById('twbtn' + qi + '_' + i);
+      btn.disabled = true;
+      btn.dataset.picked = '1';
+
+      if (i === q.ans && i !== oi) {
+        /* Show correct answer they missed */
+        btn.style.cssText = [
+          'background:#e6f4ec',
+          'border:1.5px solid #2e8b57',
+          'border-radius:5px',
+          'padding:10px 12px',
+          'font-size:13px',
+          'color:#1a5c38',
+          'text-align:left',
+          'line-height:1.45',
+          'width:100%',
+          'font-family:Arial,sans-serif',
+          'display:flex',
+          'gap:8px',
+          'align-items:flex-start',
+          'opacity:0.7',
+          'cursor:default'
+        ].join(';');
+      }
+    }
+
+    var chosen = document.getElementById('twbtn' + qi + '_' + oi);
+
+    if (correct) {
+      chosen.style.cssText = [
+        'background:#e6f4ec',
+        'border:1.5px solid #2e8b57',
+        'border-radius:5px',
+        'padding:10px 12px',
+        'font-size:13px',
+        'color:#1a5c38',
+        'text-align:left',
+        'line-height:1.45',
+        'width:100%',
+        'font-family:Arial,sans-serif',
+        'display:flex',
+        'gap:8px',
+        'align-items:flex-start',
+        'cursor:default'
+      ].join(';');
+      score++;
+      fb.style.cssText = [
+        'display:block',
+        'margin-top:12px',
+        'font-size:13px',
+        'line-height:1.65',
+        'padding:11px 13px',
+        'border-radius:5px',
+        'background:#e6f4ec',
+        'border:1.5px solid #2e8b57',
+        'color:#1a5c38',
+        'font-family:Arial,sans-serif'
+      ].join(';');
+      fb.innerHTML = '<b>&#10003; Correct!</b> ' + q.why;
+    } else {
+      chosen.style.cssText = [
+        'background:#fdecea',
+        'border:1.5px solid #c0392b',
+        'border-radius:5px',
+        'padding:10px 12px',
+        'font-size:13px',
+        'color:#7a1c12',
+        'text-align:left',
+        'line-height:1.45',
+        'width:100%',
+        'font-family:Arial,sans-serif',
+        'display:flex',
+        'gap:8px',
+        'align-items:flex-start',
+        'cursor:default'
+      ].join(';');
+      fb.style.cssText = [
+        'display:block',
+        'margin-top:12px',
+        'font-size:13px',
+        'line-height:1.65',
+        'padding:11px 13px',
+        'border-radius:5px',
+        'background:#fdecea',
+        'border:1.5px solid #c0392b',
+        'color:#7a1c12',
+        'font-family:Arial,sans-serif'
+      ].join(';');
+      fb.innerHTML = '<b>&#10007; Not quite.</b> ' + q.why;
+    }
+
+    syncMeta();
+    if (answered.every(function (a) { return a; })) {
+      setTimeout(showSummary, 800);
+    }
+  }
+
+  /* ---- Update pill + bar ---- */
+  function syncMeta() {
+    var done = answered.filter(function (a) { return a; }).length;
+    document.getElementById('twpill').textContent = score + ' / ' + QS.length;
+    document.getElementById('twbar').style.width = Math.round(done / QS.length * 100) + '%';
+  }
+
+  /* ---- Final summary ---- */
+  function showSummary() {
+    var verdicts = [
+      'Keep studying — review the explanations above and try again.',
+      'A start — there is more to learn. Review and retry.',
+      'Getting there! A few more concepts to revisit.',
+      'Decent effort. Review the ones you missed.',
+      'Strong result! Just one or two concepts to tighten up.',
+      'Excellent! Outstanding regulatory knowledge.',
+      'Perfect score! You clearly know your regulatory fundamentals.'
+    ];
+    document.getElementById('twfinal').textContent = score;
+    document.getElementById('twverdict').textContent = verdicts[score];
+    document.getElementById('twsummary').style.display = 'block';
+  }
+
+  /* ---- Reset ---- */
+  window.twReset = function () { build(); };
+
+  /* ---- Go ---- */
+  build();
+
+}());
+</script>
+<!-- ===== COPY TO HERE ===== -->
+
+</body>
+</html>
